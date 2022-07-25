@@ -1,9 +1,9 @@
 # Blah Server
 
 
-## Managing Docker
+## Managing Blah Server Container
 
-First things first lets build the dockermgr executable
+First things first lets build the dockermgr executable or whatever.
 
 Download deps
 ```bash
