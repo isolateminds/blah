@@ -87,6 +87,6 @@ Commands:
 ```
 ### About **-env**...  <i>whats the point?</i>
 
-the command **image** has a sub-command **-env** using this will be the (prefix) of a **.env** file EG. **.(prefix).env**.
+the command **image** has a sub-command **-env**. This will be the (prefix) of a **.env** file EG. **.(prefix).env**.
 
 The file will be loaded and used for the created image allowing to logically seperate different parts of the application to its own container.
