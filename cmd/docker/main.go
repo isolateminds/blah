@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
@@ -9,6 +10,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -18,7 +20,9 @@ import (
 	"github.com/docker/docker/errdefs"
 	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/go-connections/nat"
+	"github.com/joho/godotenv"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
+	"github.com/ttacon/chalk"
 )
 
 const (
@@ -28,7 +32,46 @@ const (
 	NoInput = ""
 )
 
-func CreateImage(ctxParent context.Context, client *client.Client, ctxPath *string, imageName *string) context.Context {
+// Write json response to stdout
+type ErrorDetail struct {
+	Message string `json:"message"`
+}
+type Aux struct {
+	ID string `json:"ID"`
+}
+type DockerJSONWriter struct {
+	Status string `json:"status"`
+	Stream string `json:"stream"`
+	Aux    Aux    `json:"aux"`
+}
+
+func (d *DockerJSONWriter) TagExists(tag string) bool {
+	return strings.Trim(tag, "\n") != ""
+}
+func (d *DockerJSONWriter) Print(phase string, r io.ReadCloser) error {
+
+	j := json.NewDecoder(r)
+	for err := j.Decode(d); err != io.EOF; err = j.Decode(d) {
+		if err != nil {
+			return err
+		}
+		if d.TagExists(d.Status) {
+			fmt.Printf("<%s> <%s> %s\n", chalk.Green.Color(phase), chalk.Yellow.Color("Status"), chalk.White.Color(d.Status))
+		}
+		if d.TagExists(d.Stream) {
+			fmt.Printf("<%s> <%s> %s\n", chalk.Green.Color(phase), chalk.Yellow.Color("stream"), chalk.White.Color(d.Stream))
+		}
+		if d.TagExists(d.Aux.ID) {
+			fmt.Printf("<%s> <%s> %s\n", chalk.Green.Color(phase), chalk.Yellow.Color("aux"), chalk.White.Color(d.Aux.ID))
+		}
+
+	}
+	return nil
+}
+func FatalRed(format string, v ...any) {
+	log.Fatalf(chalk.Red.Color(format), v...)
+}
+func CreateImage(ctxParent context.Context, client *client.Client, ctxPath *string, imageName *string, env *string) context.Context {
 	ctx, cancel := context.WithCancel(ctxParent)
 
 	go func() {
@@ -36,19 +79,41 @@ func CreateImage(ctxParent context.Context, client *client.Client, ctxPath *stri
 
 		buildCtx, err := archive.TarWithOptions(*ctxPath, &archive.TarOptions{})
 		if err != nil {
-			log.Fatalf("Error creating archive %s", err)
+			FatalRed("Error creating archive %s", err)
 		}
+		var port *string
+		if *env != NoInput {
+			envFile := fmt.Sprintf(".%s.env", *env)
+			err := godotenv.Load(envFile)
+			if err != nil {
+				FatalRed("Error could not load %s %s\n", envFile, err)
+			}
+			envPort := os.Getenv("PORT")
+			envAppName := os.Getenv("APP_NAME")
 
+			if envPort == NoInput {
+				FatalRed("Error -env was specified and %s was loaded but it contains no PORT variable", envFile)
+			}
+			if envAppName == NoInput {
+				FatalRed("Error -env was specified and %s was loaded but it contains no APP_NAME variable", envFile)
+			}
+			envPort = fmt.Sprintf("%s/tcp", envPort)
+			port = &envPort
+		}
 		buildResponse, err := client.ImageBuild(ctx, buildCtx, types.ImageBuildOptions{
+			BuildArgs: map[string]*string{
+				"ENV_NAME": env,
+				"PORT":     port,
+			},
 			Tags:       []string{*imageName},
 			Dockerfile: "Dockerfile",
 		})
-		defer buildResponse.Body.Close()
 
 		if err != nil {
-			log.Fatalf("Error building image %s\n", err)
+			FatalRed("Error building image %s\n", err)
 		}
-		io.Copy(os.Stdout, buildResponse.Body)
+		var dw DockerJSONWriter
+		dw.Print("BUILD", buildResponse.Body)
 	}()
 	return ctx
 }
@@ -87,15 +152,15 @@ func RunContainer(ctxParent context.Context, client *client.Client, config Conta
 		)
 		if err != nil {
 			if err, ok := err.(errdefs.ErrConflict); ok {
-				log.Fatalf("Container %s Already in use %s", config.Name, err)
+				FatalRed("Container %s Already in use %s", config.Name, err)
 			}
-			log.Fatalf("Error creating container %s", err)
+			FatalRed("Error creating container %s", err)
 		}
 		log.Printf("Container %s has been created %s", config.Name, containerCreateCreatedBody.ID)
 
 		err = client.ContainerStart(ctx, containerCreateCreatedBody.ID, types.ContainerStartOptions{})
 		if err != nil {
-			log.Fatalf("Error starting container %s %s", config.Name, err)
+			FatalRed("Error starting container %s %s", config.Name, err)
 		}
 		log.Printf("Container %s has been started %s", config.Name, containerCreateCreatedBody.ID)
 
@@ -149,6 +214,11 @@ func main() {
 			Value: DefaultImageName,
 			Usage: "A tag to use as an image name for containers to use",
 		},
+		{
+			Name:  "env",
+			Value: "",
+			Usage: "Name of the .env file prefix to load",
+		},
 	})
 	containerFlagSet, containerFlags := SetFlags(flag.NewFlagSet("container", flag.ExitOnError), []Flag{
 		{
@@ -165,6 +235,11 @@ func main() {
 			Name:  "hostname",
 			Value: DefaultContainerName,
 			Usage: "Container hostname",
+		},
+		{
+			Name:  "expose",
+			Value: "",
+			Usage: "Expose port number and protocol in the format 80/tcp",
 		},
 		{
 			Name:  "rm",
@@ -190,7 +265,7 @@ func main() {
 
 	client, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
-		log.Fatalf("Error initializing docker API client %s\n", err)
+		FatalRed("Error initializing docker API client %s\n", err)
 	}
 	if len(os.Args) < 2 {
 		PrintDefaults()
@@ -199,12 +274,13 @@ func main() {
 	case "image":
 		ParseFlags(imageFlagSet)
 		ctx := context.Background()
+
 		if *imageFlags["context"] == NoInput {
 			fmt.Println("-context flag is required")
 			imageFlagSet.PrintDefaults()
 			os.Exit(1)
 		}
-		ctx = CreateImage(ctx, client, imageFlags["context"], imageFlags["name"])
+		ctx = CreateImage(ctx, client, imageFlags["context"], imageFlags["name"], imageFlags["env"])
 		<-ctx.Done()
 
 	case "container":
@@ -218,7 +294,7 @@ func main() {
 				Force:         true,
 			})
 			if err != nil {
-				log.Fatalf("Error removing container %s %s\n", containerName, err)
+				FatalRed("Error removing container %s %s\n", containerName, err)
 			}
 		} else if *containerFlags["image"] == NoInput || *containerFlags["name"] == NoInput {
 			fmt.Println("-image flag and -name flag is required")
@@ -248,7 +324,7 @@ func main() {
 				Details:    true,
 			})
 			if err != nil {
-				log.Fatalf("Error Showing Log output %s\n", err)
+				FatalRed("Error Showing Log output %s\n", err)
 			}
 			io.Copy(os.Stdout, rc)
 		}
@@ -262,7 +338,7 @@ func main() {
 			// an absolute path is needed for  -mount
 			if !path.IsAbs(mount) {
 				if mount, err = filepath.Abs(mount); err != nil {
-					log.Fatalf("Error unable to determine absolute path from -mount input %s", err)
+					FatalRed("Error unable to determine absolute path from -mount input %s", err)
 				} else {
 					*mongoFlags["mount"] = mount
 				}
@@ -271,9 +347,10 @@ func main() {
 		ctx := context.Background()
 		rc, err := client.ImagePull(ctx, "mongo:latest", types.ImagePullOptions{})
 		if err != nil {
-			log.Fatalf("Error Pulling Mongo image %s", err)
+			FatalRed("Error Pulling Mongo image %s", err)
 		}
-		io.Copy(os.Stdout, rc)
+		var dw DockerJSONWriter
+		dw.Print("PULL", rc)
 		ctx = RunContainer(ctx, client, ContainerConfig{
 			Image:    "mongo",
 			Name:     "mongodb",
