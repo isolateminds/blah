@@ -5,7 +5,9 @@ go 1.18
 require (
 	github.com/docker/docker v20.10.17+incompatible
 	github.com/docker/go-connections v0.4.0
+	github.com/joho/godotenv v1.4.0
 	github.com/opencontainers/image-spec v1.0.3-0.20211202183452-c5a74bcca799
+	github.com/ttacon/chalk v0.0.0-20160626202418-22c06c80ed31
 )
 
 require (
