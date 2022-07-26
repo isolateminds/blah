@@ -7,19 +7,25 @@ import (
 	"io"
 	"log"
 	"os"
+	"path"
+	"path/filepath"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/errdefs"
 	"github.com/docker/docker/pkg/archive"
+	"github.com/docker/go-connections/nat"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 const (
 	DefaultImageName     = "blah"
 	DefaultContainerName = "blah-server"
+	// default value for many flags
+	NoInput = ""
 )
 
 func CreateImage(ctxParent context.Context, client *client.Client, ctxPath *string, imageName *string) context.Context {
@@ -48,9 +54,12 @@ func CreateImage(ctxParent context.Context, client *client.Client, ctxPath *stri
 }
 
 type ContainerConfig struct {
-	Image    string
-	Name     string
-	Hostname string
+	Image        string
+	Name         string
+	Hostname     string
+	Env          []string
+	ExposedPorts nat.PortSet
+	Mounts       []mount.Mount
 }
 
 func RunContainer(ctxParent context.Context, client *client.Client, config ContainerConfig) context.Context {
@@ -62,10 +71,14 @@ func RunContainer(ctxParent context.Context, client *client.Client, config Conta
 		containerCreateCreatedBody, err := client.ContainerCreate(
 			ctx,
 			&container.Config{
-				Hostname: config.Hostname,
-				Image:    config.Image,
+				Env:          config.Env,
+				Hostname:     config.Hostname,
+				ExposedPorts: config.ExposedPorts,
+				Image:        config.Image,
 			},
-			&container.HostConfig{},
+			&container.HostConfig{
+				Mounts: config.Mounts,
+			},
 			&network.NetworkingConfig{},
 			&v1.Platform{
 				OS: "linux",
@@ -96,6 +109,7 @@ func PrintDefaults() {
 	fmt.Println("\timage\tCreate an image for the server")
 	fmt.Println("\tcontainer\tManage containers for the server")
 	fmt.Println("\tlogs\tPrint Logs to stdout.")
+	fmt.Println("\tmongo\tCreate a MongoDB container")
 	os.Exit(0)
 }
 
@@ -127,7 +141,7 @@ func main() {
 	imageFlagSet, imageFlags := SetFlags(flag.NewFlagSet("image", flag.ExitOnError), []Flag{
 		{
 			Name:  "context",
-			Value: "",
+			Value: NoInput,
 			Usage: "Path where Dockerfile resides",
 		},
 		{
@@ -139,12 +153,12 @@ func main() {
 	containerFlagSet, containerFlags := SetFlags(flag.NewFlagSet("container", flag.ExitOnError), []Flag{
 		{
 			Name:  "name",
-			Value: "",
+			Value: NoInput,
 			Usage: "A tag to use as an image name for containers to use",
 		},
 		{
 			Name:  "image",
-			Value: "",
+			Value: NoInput,
 			Usage: "A tag to use as an image name for containers to use",
 		},
 		{
@@ -154,15 +168,23 @@ func main() {
 		},
 		{
 			Name:  "rm",
-			Value: "",
+			Value: NoInput,
 			Usage: "Name of the container to remove",
 		},
 	})
 	logsFlagSet, logFlags := SetFlags(flag.NewFlagSet("logs", flag.ExitOnError), []Flag{
 		{
 			Name:  "name",
-			Value: "",
+			Value: NoInput,
 			Usage: "Name of the container to print logs from",
+		},
+	})
+
+	mongoFlagSet, mongoFlags := SetFlags(flag.NewFlagSet("mongo", flag.ExitOnError), []Flag{
+		{
+			Name:  "mount",
+			Value: NoInput,
+			Usage: "Path on the host to bind mount",
 		},
 	})
 
@@ -177,7 +199,7 @@ func main() {
 	case "image":
 		ParseFlags(imageFlagSet)
 		ctx := context.Background()
-		if *imageFlags["context"] == "" {
+		if *imageFlags["context"] == NoInput {
 			fmt.Println("-context flag is required")
 			imageFlagSet.PrintDefaults()
 			os.Exit(1)
@@ -189,7 +211,7 @@ func main() {
 		ParseFlags(containerFlagSet)
 		ctx := context.Background()
 		// bypass all and rm container if rm flag has value
-		if *containerFlags["rm"] != "" {
+		if *containerFlags["rm"] != NoInput {
 			containerName := *containerFlags["rm"]
 			err := client.ContainerRemove(ctx, containerName, types.ContainerRemoveOptions{
 				RemoveVolumes: true,
@@ -198,7 +220,7 @@ func main() {
 			if err != nil {
 				log.Fatalf("Error removing container %s %s\n", containerName, err)
 			}
-		} else if *containerFlags["image"] == "" || *containerFlags["name"] == "" {
+		} else if *containerFlags["image"] == NoInput || *containerFlags["name"] == NoInput {
 			fmt.Println("-image flag and -name flag is required")
 			containerFlagSet.PrintDefaults()
 			os.Exit(1)
@@ -213,7 +235,7 @@ func main() {
 	case "logs":
 		ParseFlags(logsFlagSet)
 		ctx := context.Background()
-		if *logFlags["name"] == "" {
+		if *logFlags["name"] == NoInput {
 			fmt.Println("-name flag is required")
 			logsFlagSet.PrintDefaults()
 			os.Exit(1)
@@ -230,6 +252,49 @@ func main() {
 			}
 			io.Copy(os.Stdout, rc)
 		}
+	case "mongo":
+		ParseFlags(mongoFlagSet)
+		if *mongoFlags["mount"] == NoInput {
+			fmt.Println("-mount flag is required")
+			os.Exit(1)
+		} else {
+			mount := *mongoFlags["mount"]
+			// an absolute path is needed for  -mount
+			if !path.IsAbs(mount) {
+				if mount, err = filepath.Abs(mount); err != nil {
+					log.Fatalf("Error unable to determine absolute path from -mount input %s", err)
+				} else {
+					*mongoFlags["mount"] = mount
+				}
+			}
+		}
+		ctx := context.Background()
+		rc, err := client.ImagePull(ctx, "mongo:latest", types.ImagePullOptions{})
+		if err != nil {
+			log.Fatalf("Error Pulling Mongo image %s", err)
+		}
+		io.Copy(os.Stdout, rc)
+		ctx = RunContainer(ctx, client, ContainerConfig{
+			Image:    "mongo",
+			Name:     "mongodb",
+			Hostname: "database",
+			Env: []string{
+				"MONGO_INITDB_ROOT_USERNAME=root",
+				"MONGO_INITDB_ROOT_PASSWORD=secure",
+			},
+			ExposedPorts: nat.PortSet{
+				nat.Port("27017/tcp"): {},
+			},
+			Mounts: []mount.Mount{
+				{
+					Type:   mount.TypeBind,
+					Source: *mongoFlags["mount"],
+					Target: "/data/db",
+				},
+			},
+		})
+		<-ctx.Done()
+
 	default:
 		PrintDefaults()
 	}
