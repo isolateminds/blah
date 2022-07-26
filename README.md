@@ -6,12 +6,12 @@
 First things first lets build the dockermgr executable or whatever.
 
 Download deps
-```bash
+```
 go mod download && go mod verify
 ```
 
 Build Executable
-```bash
+```
 go build -o ./dockermgr ./src/cmd/docker/main.go
 ```
 
@@ -34,11 +34,15 @@ Commands:
     Directory where Dockerfile resides
 -name string
     A tag to use as an image name for containers to use (default "blah")
+-env string
+    Name of the .env file prefix to load
 ```
 **Command:** **container**
 
 <small>-image flag and -name flag is required (unless -rm is used)</small>
 ```
+-expose string
+    Expose port number and protocol in the format 80/tcp
 -hostname string
     Container hostname (default "blah-server")
 -image string
@@ -61,23 +65,28 @@ Commands:
 ### Example Usage
 
 *Create image and tag it*
-```bash
-./dockermgr image -context ./ -Name test:1.0.0
+```
+./dockermgr image -context ./ -Name test:1.0.0 -env test
 ```
 
 *Create container and run it*
-```bash
+```
 ./dockermgr container -image test:1.0.0 -Name test_blah1
 ```
 
 *Print logs to stdout and follow*
-```bash
+```
 ./dockermgr logs -name test_blah1
 ```
 
 *Remove Image (Forcefully)*
 
-```bash
+```
 ./dockermgr container -rm test_blah1
 
 ```
+### About **-env**...  <i>whats the point?</i>
+
+the command **image** has a sub-command **-env** using this will be the (prefix) of a **.env** file EG. **.(prefix).env**.
+
+The file will be loaded and used for the created image allowing to logically seperate different parts of the application to its own container.
