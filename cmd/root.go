@@ -20,7 +20,7 @@ func printBanner() {
 	printBlue(`  / _ )/ /  / _ | / // / `)
 	printBlue(` / _  / /__/ __ |/ _  /  `)
 	printBlue(`/____/____/_/ |_/_//_/   `)
-	printBlue(`The quick mongodb nginx setup utility.`)
+	printBlue(`The project container setup utility.`)
 	fmt.Println()
 	printCyan(`Try --help           © 2022 dannyvidal`)
 	fmt.Println()
