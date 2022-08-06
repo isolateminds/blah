@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bufio"
 	"context"
 	"errors"
 	"fmt"
@@ -10,12 +11,18 @@ import (
 	"github.com/dannyvidal/blah/internal/color"
 	"github.com/dannyvidal/blah/internal/containers"
 	"github.com/dannyvidal/blah/internal/mongodb"
+	"github.com/dannyvidal/blah/internal/mysql"
 	"github.com/dannyvidal/blah/internal/nginx"
 	"github.com/dannyvidal/blah/internal/persistence"
 	"github.com/dannyvidal/blah/internal/utils"
 	"github.com/docker/docker/client"
 	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
+)
+
+const (
+	MONGO_SEL = iota
+	MYSQL_SEL
 )
 
 var (
@@ -85,8 +92,8 @@ func startProject(ctx context.Context) {
 	color.PrintForInput("Type Ctrl+C to stop running containers\n")
 
 	for {
-	}
 
+	}
 }
 
 func setupProject(ctx context.Context, projectPath string) {
@@ -174,6 +181,7 @@ func setupProject(ctx context.Context, projectPath string) {
 	//Pull default images
 	images := []*containers.Image{
 		{Name: mongodb.DefaultImgTag},
+		{Name: mysql.DefaultImgTag},
 		{Name: nginx.DefaultImgTag},
 	}
 	for i := range images {
@@ -185,14 +193,41 @@ func setupProject(ctx context.Context, projectPath string) {
 		deleteProject(projectPath)
 		color.PrintFatal(err)
 	}
-	//not calling wait here nginx container is created during the mongodb prompt
+	//not calling wait here nginx container is created during the database prompt prompt
 	cController.Start(ctx, creater)
-	if creater, err = mongodb.InitialSetup(projectName, handleCreation); err != nil {
-		deleteProject(projectPath)
+
+	switch promptDBType() {
+	case MONGO_SEL:
+		if creater, err = mongodb.InitialSetup(projectName, handleCreation); err != nil {
+			deleteProject(projectPath)
+			color.PrintFatal(err)
+		}
+		cController.Start(ctx, creater).Wait()
+	case MYSQL_SEL:
+		if creater, err = mysql.InitialSetup(projectName, handleCreation); err != nil {
+			deleteProject(projectPath)
+			color.PrintFatal(err)
+		}
+		cController.Start(ctx, creater).Wait()
+	}
+	color.PrintStatus("Project Created", "Run blah project --start to start developing.")
+}
+
+//Prompts user for the database type
+func promptDBType() int {
+	var db string
+	output := "Select a database: \n(1) MongoDB\n(2) Mysql\n: "
+	reader := bufio.NewReader(os.Stdin)
+	err := utils.GetInput(reader, output, &db, false, "Database Type")
+	if err != nil {
 		color.PrintFatal(err)
 	}
-
-	cController.Start(ctx, creater).Wait()
-	color.PrintStatus("Project Created", "Run blah project --start to start developing.")
-
+	if db == "1" {
+		return MONGO_SEL
+	}
+	if db == "2" {
+		return MYSQL_SEL
+	}
+	color.PrintYellow("Select 1 for Mongodb or 2 for Mysql.")
+	return promptDBType()
 }
