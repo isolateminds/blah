@@ -1,5 +1,1 @@
-vendor/
-database/
-dockermgr
 .DS_Store
-.*env

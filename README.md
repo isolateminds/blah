@@ -1,99 +1,90 @@
-# Blah Server
+# Blah - The quick mongodb nginx setup utility.
 
 
-## Managing Blah Server Container
+### Description
+Bootstrap a mongodb/nginx project quickly for development use.
 
-First things first lets build the dockermgr executable or whatever.
+### Features
 
-Download deps
+  * Pulls a **MongoDB** Docker Image, if one does not exist. Default *"mongo:latest"*
+  * Automatically Mounts the database directory to project folder. */project/database*
+  * Automatically creates init database **Prompts you at ```blah project --init```**
+  * Automatically creates a root database with a randomly generated password.
+  * Database password secrets are stored within a .env file to use with other projects.
+  * Automatically mounts an nginx configuration file to host 
+
+
+
+### Usage
+
+ Initialize the project.
 ```
-go mod download && go mod verify
+blah project --init myproj
 ```
+You should see something like this
+```bash
 
-Build Executable
+(Creating Project) myproj
+(Pulling from library/mongo)
+
+(Digest: sha256:4200c3073389d5b303070e53ff8f5e4472efb534340d28599458ccc24f378025)
+
+(Pulling from library/nginx)
+
+(MongoDB) Setup your Mongo database
+Username: admin # Enter your username here this will be the user for the init database
+Password: # Password is for the init database as well im putting password
+Confirm Password: # Confirm
+(Project Created) Run blah project --start to start developing.
 ```
-go build -o ./dockermgr ./src/cmd/docker/main.go
-```
-
-Now you have a few commands you can use
-
-```
-Commands:
-    image       Create an image for the server
-    container   Manage containers for the server
-    logs        Print Logs to stdout.
-```
-
-**Command:** **image**
-
-
-<small>-context flag is required</small>
-
-```
--context string
-    Directory where Dockerfile resides
--name string
-    A tag to use as an image name for containers to use (default "blah")
--env string
-    Name of the .env file prefix to load
-```
-**Command:** **container**
-
-<small>-image flag and -name flag is required (unless -rm is used)</small>
-```
--expose string
-    Expose port number and protocol in the format 80/tcp
--hostname string
-    Container hostname (default "blah-server")
--image string
-    A tag to use as an image name for containers to use
--name string
-    A tag to use as an image name for containers to use
--rm string
-    Name of the container to remove
-```
-
-**Command:** **logs**
-
-<small>-name flag is required</small>
-
-```
--name string
-    Name of the container to print logs from
-```
-
-### Example Usage
-
-*Create image and tag it*
-```
-./dockermgr image -context ./ -Name test:1.0.0 -env test
-```
-
-*Create container and run it*
-```
-./dockermgr container -image test:1.0.0 -Name test_blah1
-```
-
-*Print logs to stdout and follow*
-```
-./dockermgr logs -name test_blah1
-```
-
-*Remove Image (Forcefully)*
-
-```
-./dockermgr container -rm test_blah1
-
-```
-### About **-env**...  <i>whats the point?</i>
-
-the command **image** has a sub-command **-env**. This will be the (prefix) of a **.env** file for intance **.(prefix).env**.
-
-The file will be loaded and used for the created image allowing to logically seperate different parts of the application to its own container.
-
-Each Seperated **.env** file has two requirements.
+Now you should see a directory as so
 
 ```bash
-APP_NAME=YOUR_NAME 
-PORT=YOUR_PORT
+.
+├── .env # Secrets and URI(s)
+├── .gitignore # gitignore just in case 
+├── database # Mounted database files
+├── initdb
+│   └── init-db.sh # Mongo entry you can add files here as you wish
+├── nginx.conf # Default nginx conf
+├── persist.db # This stores container names, passwords and mount points don't commit it.
+└── src # Not important you can do whatever to this
+
+3 directories, 3 files
 ```
+The **.env** file should look like this 
+
+```bash
+MONGO_INITDB_DATABASE=myproj
+MONGO_INITDB_USERNAME=admin
+MONGO_INITDB_PASSWORD=password
+MONGODB_URL=mongodb://admin:password@localhost:3186/myproj
+MONGO_INITDB_ROOT_USERNAME=root
+MONGO_INITDB_ROOT_PASSWORD=nKov9ryhSBNSrWAO
+MONGODB_ROOT_URL=mongodb://root:nKov9ryhSBNSrWAO@localhost:3186/admin
+```
+
+
+Starting Project
+```bash
+blah project --start #make sure you in the project directory
+```
+
+You should see something like this
+```bash
+(Container) Starting....
+(Container) Started aptcms_myproj_nginx
+(Container) Started aptcms_myproj_mongodb
+Type Ctrl+C to stop running containers
+```
+The containers started automatically when you exit with Ctrl+C the containers will stop running.
+
+
+```bash
+^C
+(Container) Stopped aptcms_myproj_nginx
+(Container) Stopped aptcms_myproj_mongodb
+exit status 1
+```
+
+That's all for now feel free to use however you wish.
