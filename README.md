@@ -1,4 +1,4 @@
-# Blah - The quick mongodb nginx setup utility.
+# Blah - The quick project container setup utility.
 
 
 ### Description
@@ -7,6 +7,7 @@ Bootstrap a mongodb/nginx project quickly for development use.
 ### Features
 
   * Pulls a **MongoDB** Docker Image, if one does not exist. Default *"mongo:latest"*
+  * Pulls a **Mysql** Docker Image, if one does not exist. Default *"mysql:latest"*
   * Automatically Mounts the database directory to project folder. */project/database*
   * Automatically creates init database **Prompts you at ```blah project --init```**
   * Automatically creates a root database with a randomly generated password.
@@ -52,7 +53,7 @@ Now you should see a directory as so
 
 3 directories, 3 files
 ```
-The **.env** file should look like this 
+The **.env** file should look like this (if using mongodb)
 
 ```bash
 MONGO_INITDB_DATABASE=myproj
