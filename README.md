@@ -2,7 +2,7 @@
 
 
 ### Description
-Bootstrap a mongodb/nginx project quickly for development use.
+Bootstrap a mongodb/mysql/nginx project quickly for development use.
 
 ### Features
 
