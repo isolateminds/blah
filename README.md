@@ -73,8 +73,8 @@ blah project --start #make sure you in the project directory
 You should see something like this
 ```bash
 (Container) Starting....
-(Container) Started aptcms_myproj_nginx
-(Container) Started aptcms_myproj_mongodb
+(Container) Started myproj_nginx
+(Container) Started myproj_mongodb
 Type Ctrl+C to stop running containers
 ```
 The containers started automatically when you exit with Ctrl+C the containers will stop running.
@@ -82,8 +82,8 @@ The containers started automatically when you exit with Ctrl+C the containers wi
 
 ```bash
 ^C
-(Container) Stopped aptcms_myproj_nginx
-(Container) Stopped aptcms_myproj_mongodb
+(Container) Stopped myproj_nginx
+(Container) Stopped myproj_mongodb
 exit status 1
 ```
 
