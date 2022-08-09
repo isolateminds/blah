@@ -130,9 +130,9 @@ func WriteFileAbs(b []byte, pathSegments ...string) string {
 	return GetAbsChild(p)
 }
 
-//Prefixes project name to a container name or network name etc. EG. myproject_nginx
+//Prefixes project name to a container name etc. EG. myproject_nginx
 func PrefixProjectName(projectName string, suffix string) string {
-	return fmt.Sprintf("aptcms_%s_%s", strings.ToLower(projectName), suffix)
+	return fmt.Sprintf("%s_%s", strings.ToLower(projectName), suffix)
 }
 
 //Checks if file exists
