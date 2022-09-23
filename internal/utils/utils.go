@@ -15,7 +15,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/dannyvidal/blah/internal/color"
+	"github.com/isolateminds/blah/internal/color"
 	"github.com/ttacon/chalk"
 	"golang.org/x/term"
 )
@@ -31,13 +31,13 @@ var letters = func() []rune {
 	return alphabet
 }()
 
-//Checks to see if check string is alphanumeric a-zA-Z0-9
+// Checks to see if check string is alphanumeric a-zA-Z0-9
 func IsAlphaNumeric(check string) bool {
 	fn := regexp.MustCompile(`^[A-Za-z0-9]+$`).MatchString
 	return fn(check)
 }
 
-//Gets user input from stdin
+// Gets user input from stdin
 func GetInput(reader *bufio.Reader, output string, inputVar *string, hide bool, reason string) error {
 	color.PrintForInput(output)
 	if hide {
@@ -71,7 +71,7 @@ func GenerateRandomString(length int) string {
 	return string(b)
 }
 
-//Iterates through functions until an error is not nil then returns error
+// Iterates through functions until an error is not nil then returns error
 func UntilError(fns ...func() error) error {
 	for i := range fns {
 		err := fns[i]()
@@ -82,7 +82,7 @@ func UntilError(fns ...func() error) error {
 	return nil
 }
 
-//Makes directory returns absolute path fatally exists if an error is encountered
+// Makes directory returns absolute path fatally exists if an error is encountered
 func MkdirAbs(path string) string {
 	err := os.Mkdir(path, os.ModePerm)
 	if err != nil {
@@ -94,7 +94,7 @@ func MkdirAbs(path string) string {
 	return GetAbsChild(path)
 }
 
-//Makes directory
+// Makes directory
 func Mkdir(path string) {
 	err := os.Mkdir(path, os.ModePerm)
 	if err != nil {
@@ -102,7 +102,7 @@ func Mkdir(path string) {
 	}
 }
 
-//Returns absolute path fatally exists if an error is encountered
+// Returns absolute path fatally exists if an error is encountered
 func GetAbsChild(path string) string {
 	p, err := filepath.Abs(path)
 	if err != nil {
@@ -111,7 +111,7 @@ func GetAbsChild(path string) string {
 	return p
 }
 
-//Writes a file fatally exists if an error is encountered
+// Writes a file fatally exists if an error is encountered
 func WriteFile(b []byte, pathSegments ...string) {
 	err := ioutil.WriteFile(path.Join(pathSegments...), b, 0666)
 	if err != nil {
@@ -119,7 +119,7 @@ func WriteFile(b []byte, pathSegments ...string) {
 	}
 }
 
-//Writes a file returns absolute path of the file fatally exists if an error is encountered
+// Writes a file returns absolute path of the file fatally exists if an error is encountered
 func WriteFileAbs(b []byte, pathSegments ...string) string {
 	p := path.Join(pathSegments...)
 
@@ -130,12 +130,12 @@ func WriteFileAbs(b []byte, pathSegments ...string) string {
 	return GetAbsChild(p)
 }
 
-//Prefixes project name to a container name etc. EG. myproject_nginx
+// Prefixes project name to a container name etc. EG. myproject_nginx
 func PrefixProjectName(projectName string, suffix string) string {
 	return fmt.Sprintf("%s_%s", strings.ToLower(projectName), suffix)
 }
 
-//Checks if file exists
+// Checks if file exists
 func FileExists(file string) bool {
 	_, err := os.Stat(file)
 	if err != nil {
@@ -144,21 +144,21 @@ func FileExists(file string) bool {
 	return true
 }
 
-//Appends lines to a file if it exists
+// Appends lines to a file if it exists
 func AppendFileIfExists(fileName string, lines ...string) {
 	if FileExists(fileName) {
 		AppendFile(fileName, lines...)
 	}
 }
 
-//Creates and appends to a file if it does not exist
+// Creates and appends to a file if it does not exist
 func AppendFileIfNotExists(fileName string, lines ...string) {
 	if !FileExists(fileName) {
 		AppendFile(fileName, lines...)
 	}
 }
 
-//Appends lines to a file fatally exists if an error is encountered
+// Appends lines to a file fatally exists if an error is encountered
 func AppendFile(fileName string, lines ...string) {
 
 	f, err := os.OpenFile(fileName, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
@@ -174,14 +174,14 @@ func AppendFile(fileName string, lines ...string) {
 	}
 }
 
-//changes directory fatally exists if an error is encountered
+// changes directory fatally exists if an error is encountered
 func Chdir(path string) {
 	if err := os.Chdir(path); err != nil {
 		color.PrintFatal(err)
 	}
 }
 
-//Starts a channel listening for SIGTERM Ctrl+C and invokes the callback
+// Starts a channel listening for SIGTERM Ctrl+C and invokes the callback
 func HandleSIGTERM(cb func()) {
 	//cleanup func upon Ctrl+C SIGINT or SIGTERM
 	c := make(chan os.Signal)

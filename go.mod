@@ -1,4 +1,4 @@
-module github.com/dannyvidal/blah
+module github.com/isolateminds/blah
 
 go 1.18
 

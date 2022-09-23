@@ -7,9 +7,9 @@ import (
 	"io"
 	"sync"
 
-	"github.com/dannyvidal/blah/internal/color"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
+	"github.com/isolateminds/blah/internal/color"
 )
 
 type Image struct {

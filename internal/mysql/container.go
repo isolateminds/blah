@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/dannyvidal/blah/internal/color"
-	"github.com/dannyvidal/blah/internal/containers"
-	"github.com/dannyvidal/blah/internal/utils"
 	"github.com/docker/docker/api/types/mount"
+	"github.com/isolateminds/blah/internal/color"
+	"github.com/isolateminds/blah/internal/containers"
+	"github.com/isolateminds/blah/internal/utils"
 )
 
 var (
@@ -18,7 +18,7 @@ var (
 	DefaultImgTag = "mysql:latest"
 )
 
-//Prompts user for mysql authentication details and makes all necessary mount points
+// Prompts user for mysql authentication details and makes all necessary mount points
 func InitialSetup(projectName string, cb containers.CallbackFn) (containers.ContainerCreator, error) {
 
 	var (

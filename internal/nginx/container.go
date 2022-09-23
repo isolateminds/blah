@@ -4,9 +4,9 @@ import (
 	_ "embed"
 	"fmt"
 
-	"github.com/dannyvidal/blah/internal/containers"
-	"github.com/dannyvidal/blah/internal/utils"
 	"github.com/docker/docker/api/types/mount"
+	"github.com/isolateminds/blah/internal/containers"
+	"github.com/isolateminds/blah/internal/utils"
 )
 
 var (

@@ -8,14 +8,14 @@ import (
 	"os"
 	"path"
 
-	"github.com/dannyvidal/blah/internal/color"
-	"github.com/dannyvidal/blah/internal/containers"
-	"github.com/dannyvidal/blah/internal/mongodb"
-	"github.com/dannyvidal/blah/internal/mysql"
-	"github.com/dannyvidal/blah/internal/nginx"
-	"github.com/dannyvidal/blah/internal/persistence"
-	"github.com/dannyvidal/blah/internal/utils"
 	"github.com/docker/docker/client"
+	"github.com/isolateminds/blah/internal/color"
+	"github.com/isolateminds/blah/internal/containers"
+	"github.com/isolateminds/blah/internal/mongodb"
+	"github.com/isolateminds/blah/internal/mysql"
+	"github.com/isolateminds/blah/internal/nginx"
+	"github.com/isolateminds/blah/internal/persistence"
+	"github.com/isolateminds/blah/internal/utils"
 	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
 )
@@ -213,7 +213,7 @@ func setupProject(ctx context.Context, projectPath string) {
 	color.PrintStatus("Project Created", "Run blah project --start to start developing.")
 }
 
-//Prompts user for the database type
+// Prompts user for the database type
 func promptDBType() int {
 	var db string
 	output := "Select a database: \n(1) MongoDB\n(2) Mysql\n: "

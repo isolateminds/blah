@@ -1,7 +1,7 @@
 package persistence
 
 import (
-	"github.com/dannyvidal/blah/internal/containers"
+	"github.com/isolateminds/blah/internal/containers"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -30,7 +30,7 @@ func (c *PersistedDataController) FindOneContainerByID(ID string) (*containers.C
 	return &container, nil
 }
 
-//Deletes a persisted container from sqlite file along with its assosiated mount points
+// Deletes a persisted container from sqlite file along with its assosiated mount points
 func (c *PersistedDataController) DeleteContainerByID(ID string) error {
 
 	tx := c.db.Unscoped().Select("Mounts").Where("container_id = ?", ID).Delete(&containers.Container{})
@@ -40,7 +40,7 @@ func (c *PersistedDataController) DeleteContainerByID(ID string) error {
 	return nil
 }
 
-//Opens a sqlite file and returns a controller to manage persistence
+// Opens a sqlite file and returns a controller to manage persistence
 func NewPersistedDataController(name string) (*PersistedDataController, error) {
 	db, err := gorm.Open(sqlite.Open(name), &gorm.Config{})
 
