@@ -50,10 +50,7 @@ type Container struct {
 	Env          []ContainerEnv         `gorm:"foreignKey:EnvRefer;         constraint:OnDelete:CASCADE;" json:"env"`
 }
 
-//Had to make different methods here because
-//gorm not being able to accept some types the
-//docker sdk uses
-
+//Had to make different methods here because gorm not being able to accept some types the docker sdk uses
 //Makes KEY=pair
 func (c Container) CreateENVKeyPair() []string {
 	keypair := make([]string, len(c.Env))
