@@ -22,7 +22,7 @@ func printBanner() {
 	printBlue(`/____/____/_/ |_/_//_/   `)
 	printBlue(`The project container setup utility.`)
 	fmt.Println()
-	printCyan(`Try --help           © 2022 dannyvidal`)
+	printCyan(`Try --help           © 2022 isolateminds`)
 	fmt.Println()
 }
 
